@@ -94,11 +94,17 @@ function initMaze() {
     const maze = new Maze(settings);
     maze.generate();
     maze.draw();
-    const jsonObject = JSON.parse(JSON.stringify({ levelGrid: maze.matrix, levelName: "level3" }));
+    const jsonObject = JSON.parse(JSON.stringify({ levelGrid: maze.matrix, levelName: "defaultGameLevel" }));
     const levelGrid = jsonObject.levelGrid;
     const formattedLevelGrid = levelGrid.map(row => row.split('').map(char => char === '1' ? '#' : ' '));
-    console.log(JSON.stringify({ levelGrid: formattedLevelGrid, levelName: "level3" }));
+    // Insert 'S' at the 2nd row, 1st column and 'E' at the 2nd-to-last row, last column
+    formattedLevelGrid[1][0] = 'S'; // 2nd row, 1st column
+    formattedLevelGrid[formattedLevelGrid.length - 2][formattedLevelGrid[0].length - 1] = 'E'; // 2nd last row, last column
+    // Insert coins
+    const updatedGrid = insertCoins(formattedLevelGrid);
+    console.log(JSON.stringify({ levelGrid: updatedGrid, levelName: "defaultGameLevel" }));
 
+    // you can automate putting S and E easily if they are always top left and bottom right
     if (download && download.classList.contains('hide')) {
         download.classList.toggle("hide");
     }
@@ -115,6 +121,92 @@ function initMaze() {
 
     location.href = "#";
     location.href = "#generate";
+}
+
+function insertCoins(formattedLevelGrid) {
+    const rows = formattedLevelGrid.length;
+    const cols = formattedLevelGrid[0].length;
+
+    // Find the starting position ('S')
+    let startRow = -1, startCol = -1;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (formattedLevelGrid[r][c] === 'S') {
+                startRow = r;
+                startCol = c;
+                break;
+            }
+        }
+        if (startRow !== -1) break;
+    }
+
+    // Directions: up, right, down, left
+    const directions = [
+        [-1, 0], [0, 1], [1, 0], [0, -1]
+    ];
+
+    // Helper to check if a cell is valid and not visited
+    function isValid(row, col, visited) {
+        return (
+            row >= 0 &&
+            col >= 0 &&
+            row < rows &&
+            col < cols &&
+            formattedLevelGrid[row][col] === ' ' &&
+            !visited.has(`${row},${col}`)
+        );
+    }
+
+    const visited = new Set();
+    visited.add(`${startRow},${startCol}`);
+
+    let coinsPlaced = 0;
+    let currentRow = startRow;
+    let currentCol = startCol;
+
+    while (coinsPlaced < 30) {
+        let moved = false;
+
+        // Try moving to an adjacent cell
+        for (const [dr, dc] of directions) {
+            const newRow = currentRow + dr;
+            const newCol = currentCol + dc;
+
+            if (isValid(newRow, newCol, visited)) {
+                visited.add(`${newRow},${newCol}`);
+                currentRow = newRow;
+                currentCol = newCol;
+                moved = true;
+                break; // Exit loop after moving
+            }
+        }
+
+        // If no valid moves, it's a dead end - place a coin
+        if (!moved) {
+            formattedLevelGrid[currentRow][currentCol] = 'C';
+            coinsPlaced++;
+
+            // Restart search for unvisited empty space
+            let foundNextStart = false;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (formattedLevelGrid[r][c] === ' ' && !visited.has(`${r},${c}`)) {
+                        currentRow = r;
+                        currentCol = c;
+                        visited.add(`${r},${c}`);
+                        foundNextStart = true;
+                        break;
+                    }
+                }
+                if (foundNextStart) break;
+            }
+
+            // If no unvisited spaces remain, stop
+            if (!foundNextStart) break;
+        }
+    }
+
+    return formattedLevelGrid;
 }
 
 function downloadImage(e) {
