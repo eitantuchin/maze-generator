@@ -1,5 +1,6 @@
 // Global variables
 let mazeNodes = {};
+let nameCounter = 11;
 
 // Check if globals are defined
 if (typeof maxMaze === 'undefined') {
@@ -94,7 +95,7 @@ function initMaze() {
     const maze = new Maze(settings);
     maze.generate();
     maze.draw();
-    const jsonObject = JSON.parse(JSON.stringify({ levelGrid: maze.matrix, levelName: "defaultGameLevel" }));
+    const jsonObject = JSON.parse(JSON.stringify({ levelGrid: maze.matrix, levelName: "defaultGameLevel" + nameCounter }));
     const levelGrid = jsonObject.levelGrid;
     const formattedLevelGrid = levelGrid.map(row => row.split('').map(char => char === '1' ? '#' : ' '));
     // Insert 'S' at the 2nd row, 1st column and 'E' at the 2nd-to-last row, last column
@@ -102,7 +103,19 @@ function initMaze() {
     formattedLevelGrid[formattedLevelGrid.length - 2][formattedLevelGrid[0].length - 1] = 'E'; // 2nd last row, last column
     // Insert coins
     const updatedGrid = insertCoins(formattedLevelGrid);
-    console.log(JSON.stringify({ levelGrid: updatedGrid, levelName: "defaultGameLevel" }));
+    // Send the request using fetch
+    fetch('http://coms-3090-023.class.las.iastate.edu:8080/createLevel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json' // Correct content type
+        },
+        body: JSON.stringify({ levelGrid: updatedGrid, levelName: "defaultGameLevel" + nameCounter })
+      })
+      .then(response => response.json())
+      .then(data => console.log(data))
+      .catch(error => console.error(error));
+   
+      nameCounter++;
 
     // you can automate putting S and E easily if they are always top left and bottom right
     if (download && download.classList.contains('hide')) {
