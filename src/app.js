@@ -94,6 +94,10 @@ function initMaze() {
     const maze = new Maze(settings);
     maze.generate();
     maze.draw();
+    const jsonObject = JSON.parse(JSON.stringify({ levelGrid: maze.matrix, levelName: "level3" }));
+    const levelGrid = jsonObject.levelGrid;
+    const formattedLevelGrid = levelGrid.map(row => row.split('').map(char => char === '1' ? '#' : ' '));
+    console.log(JSON.stringify({ levelGrid: formattedLevelGrid, levelName: "level3" }));
 
     if (download && download.classList.contains('hide')) {
         download.classList.toggle("hide");
